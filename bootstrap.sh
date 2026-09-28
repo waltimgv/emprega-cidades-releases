@@ -145,8 +145,7 @@ fi
 
 log "Autenticação no registry de imagens (GHCR — escopo read:packages, nunca acesso ao código-fonte)"
 log "Usuário: $GHCR_USUARIO (fixo — defina EMPREGA_GHCR_USUARIO pra usar outro)"
-read -r -s -p "Token do GHCR (read:packages — a digitação fica oculta): " ghcr_token
-echo
+read -r -p "Token do GHCR (read:packages): " ghcr_token
 [[ -n "$ghcr_token" ]] || falhar "O token do GHCR é obrigatório."
 echo "$ghcr_token" | docker login ghcr.io -u "$GHCR_USUARIO" --password-stdin
 unset ghcr_token
