@@ -25,6 +25,7 @@
 set -Eeuo pipefail
 
 REPO_RELEASES="waltimgv/emprega-cidades-releases"
+GHCR_USUARIO="${EMPREGA_GHCR_USUARIO:-waltimgv}"
 REPO_WORKFLOW="waltimgv/banco-de-empregos"
 DESTINO="${EMPREGA_DESTINO:-/opt/emprega-cidades}"
 COSIGN_VERSION="v3.0.6"
@@ -130,11 +131,11 @@ if [[ ! -f .env ]]; then
 fi
 
 log "Autenticação no registry de imagens (GHCR — escopo read:packages, nunca acesso ao código-fonte)"
-read -r -p "Usuário do GitHub para o docker login: " ghcr_usuario
+log "Usuário: $GHCR_USUARIO (fixo — defina EMPREGA_GHCR_USUARIO pra usar outro)"
 read -r -s -p "Token do GHCR (read:packages — a digitação fica oculta): " ghcr_token
 echo
-[[ -n "$ghcr_usuario" && -n "$ghcr_token" ]] || falhar "Usuário e token do GHCR são obrigatórios."
-echo "$ghcr_token" | docker login ghcr.io -u "$ghcr_usuario" --password-stdin
+[[ -n "$ghcr_token" ]] || falhar "O token do GHCR é obrigatório."
+echo "$ghcr_token" | docker login ghcr.io -u "$GHCR_USUARIO" --password-stdin
 unset ghcr_token
 
 log "Pré-requisitos prontos. A partir daqui, o instalador oficial assume: domínios, DNS, firewall, proxy, TLS, preflight, migrations e subida dos serviços."
