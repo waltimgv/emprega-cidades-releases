@@ -35,6 +35,19 @@ falhar() { printf '\n##[ERRO] %s\n' "$1" >&2; exit 1; }
 
 [[ "$(uname -s)" == "Linux" ]] || falhar "Este instalador é só para Linux."
 [[ "$(uname -m)" == "x86_64" ]] || falhar "Este instalador é só para linux/amd64."
+
+# Rodado como `curl ... | bash`, o stdin do processo é o PRÓPRIO SCRIPT sendo
+# lido pelo bash — qualquer `read` interativo (o prompt do token abaixo, e os
+# prompts de scripts/instalar.sh no final, que herda este stdin via exec) não
+# encontra o teclado, fica vazio na hora, e o docker login tenta autenticar
+# com token vazio ("denied: denied") sem nunca mostrar o prompt. Reabre o
+# stdin do próprio terminal ANTES de qualquer read — sem isso, `curl | bash`
+# nunca funciona de forma interativa, com ou sem token vazio.
+if [[ -t 1 ]] && [[ -r /dev/tty ]]; then
+  exec < /dev/tty
+else
+  falhar "Sem terminal interativo (/dev/tty) disponível — rode este script diretamente (baixe e execute como arquivo), não dentro de outro pipe/automação sem TTY."
+fi
 command -v sudo >/dev/null 2>&1 || falhar "sudo é necessário (rode como um usuário com privilégio sudo, não como root direto)."
 command -v apt-get >/dev/null 2>&1 || falhar "Este instalador é só para distribuições baseadas em apt (Ubuntu/Debian)."
 
