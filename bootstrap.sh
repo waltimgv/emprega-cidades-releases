@@ -225,8 +225,13 @@ unset ghcr_token
 if [[ "$modo" == "atualizar" ]]; then
   cd "$DESTINO"
   log "Pré-requisitos prontos. A partir daqui, o atualizador oficial assume: backup, migrations e subida da nova versão."
-  exec bash scripts/atualizar.sh "$dir_pacote"
+  # Sem "exec": precisa terminar de dentro deste processo pra rm -rf "$dir_download" no
+  # trap EXIT (linha acima) rodar — "exec" substitui o processo e pula o trap, deixando
+  # o pacote baixado/extraído pra trás em /tmp pra sempre (achado real: acumulava a cada
+  # atualização, nunca era limpo). O código de saída final continua o mesmo de antes:
+  # como é o último comando do script, cai pro fim do arquivo com o mesmo status.
+  bash scripts/atualizar.sh "$dir_pacote"
 else
   log "Pré-requisitos prontos. A partir daqui, o instalador oficial assume: domínios, DNS, firewall, proxy, TLS, preflight, migrations e subida dos serviços."
-  exec bash scripts/instalar.sh "$DESTINO"
+  bash scripts/instalar.sh "$DESTINO"
 fi
