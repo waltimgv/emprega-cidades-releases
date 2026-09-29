@@ -63,6 +63,17 @@ if [[ -z "${EMPREGA_BOOTSTRAP_REEXEC:-}" ]] && [[ ! -f "${BASH_SOURCE[0]:-}" ]];
     || falhar "Falha ao baixar bootstrap.sh pra reexecutar como arquivo. Baixe e rode manualmente: curl -fsSL https://raw.githubusercontent.com/$REPO_RELEASES/main/bootstrap.sh -o bootstrap.sh && bash bootstrap.sh"
   EMPREGA_BOOTSTRAP_REEXEC=1 exec bash "$tmp_bootstrap"
 fi
+# A cópia baixada acima (se veio via pipe) só existe pra este reexec — sem isso,
+# ela nunca é apagada: o "exec" logo acima já troca de processo antes de qualquer
+# limpeza, e nada mais tarde sabe que "$0" é um arquivo temporário. Registra a
+# limpeza aqui, já dentro do processo reexecutado, pelo próprio caminho ($0).
+# Guardada numa variável (não direto num "trap ... EXIT") porque outro trap EXIT
+# é registrado mais abaixo (dir_download) — "trap" SUBSTITUI o handler anterior,
+# não acumula; cada novo "trap ... EXIT" precisa reincluir esta string também,
+# senão a limpeza de um dos dois se perde silenciosamente.
+limpar_bootstrap_tmp=""
+[[ -z "${EMPREGA_BOOTSTRAP_REEXEC:-}" ]] || limpar_bootstrap_tmp="rm -f '$0'; "
+trap "$limpar_bootstrap_tmp" EXIT
 
 # Rodado como `curl ... | bash`, o stdin do processo é o PRÓPRIO SCRIPT sendo
 # lido pelo bash — qualquer `read` interativo (o prompt do token abaixo, a
@@ -159,8 +170,10 @@ fi
 tag="self-hosted-v$versao"
 base_url="https://github.com/$REPO_RELEASES/releases/download/$tag"
 dir_download="$(mktemp -d)"
+# Reinclui $limpar_bootstrap_tmp (ver comentário acima) — senão este "trap"
+# substituiria o registrado antes e a cópia via pipe nunca seria apagada.
 # shellcheck disable=SC2064
-trap "rm -rf '$dir_download'" EXIT
+trap "${limpar_bootstrap_tmp}rm -rf '$dir_download'" EXIT
 cd "$dir_download"
 
 log "Baixando o pacote de $REPO_RELEASES (repositório público — sem login nem token)"
